@@ -107,41 +107,39 @@ MainWindow::MainWindow(QWidget *parent) :
     QLabel *peakValueLabel = new QLabel("幅值(V)");
     peakValueInput = new QLineEdit();
     peakValueInput->setMaximumWidth(100);
+    peakValueInput->setText("2");
 
-    // Set up a validator to ensure the input is a float with up to 3 decimals  
+    // St up a validator to ensure the input is a float with up to 3 decimals  
     QDoubleValidator *validatorPeak = new QDoubleValidator(this);  
     validatorPeak->setNotation(QDoubleValidator::StandardNotation);  
     validatorPeak->setDecimals(3); // Set the maximum number of decimals to 3  
     peakValueInput->setValidator(validatorPeak); 
     connect(peakValueInput, &QLineEdit::editingFinished, this, &MainWindow::onInputPeakValue);
-
-
     QLabel *frequencyLabel  = new QLabel("频率(KHZ)");
     frequencyInput = new QLineEdit();
     frequencyInput->setMaximumWidth(100);
     QIntValidator *validatorFre = new QIntValidator(1, 5000, this);  
     frequencyInput->setValidator(validatorFre); 
+    frequencyInput->setText("1000");
     connect(frequencyInput, &QLineEdit::editingFinished, this, &MainWindow::onInputFreValue);
-
     QLabel *waveformLabel = new QLabel("波形");
     waveformComboBox = new QComboBox();
     waveformComboBox->addItems({"Arb","Sine", "Square", "Triangle"});
     waveformComboBox->setMaximumWidth(100);
-
-
-    QLabel *countLabel = new QLabel("重复次数");
+    QLabel *countLabel = new QLabel("平均次数");
     countInput = new QLineEdit();
     countInput->setMaximumWidth(100);
     QIntValidator *validatorLoops = new QIntValidator(1, 200, this);  
     countInput->setValidator(validatorLoops); 
     connect(countInput, &QLineEdit::editingFinished, this, &MainWindow::onInputLoopNumValue);
-
-    QLabel *periodLabel = new QLabel("周期数(s)");
+    countInput->setText("100");
+    QLabel *periodLabel = new QLabel("脉宽(cycles)");
     periodInput = new QLineEdit();
     periodInput->setMaximumWidth(100);
     QIntValidator *validatorCycles = new QIntValidator(1, 20, this);  
     periodInput->setValidator(validatorCycles); 
     connect(periodInput, &QLineEdit::editingFinished, this, &MainWindow::onInputCyclesValue);
+    periodInput->setText("3");
 
     QLabel *intervalLabel = new QLabel("间隔(ms)");
     intervalInput = new QLineEdit();
@@ -149,6 +147,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QIntValidator *validatorInterval = new QIntValidator(1, 1000, this);  
     intervalInput->setValidator(validatorInterval); 
     connect(intervalInput, &QLineEdit::editingFinished, this, &MainWindow::onInputPearidValue);
+    intervalInput->setText("200");
 
     QHBoxLayout *rowPeak = new QHBoxLayout;
     rowPeak->addWidget(peakValueLabel);
@@ -196,10 +195,11 @@ MainWindow::MainWindow(QWidget *parent) :
     validatorSample->setDecimals(3); // Set the maximum number of decimals to 3  
     sampleInput->setValidator(validatorSample); 
     connect(sampleInput, &QLineEdit::editingFinished, this, &MainWindow::onInputSampleValue);
-
-    QLabel *captureLengthLabel = new QLabel("时间(ms)");
+    sampleInput->setText("50");
+    QLabel *captureLengthLabel = new QLabel("采集时间(ms)");
     captureLengthInput = new QLineEdit();
     captureLengthInput->setFixedWidth(100);
+    captureLengthInput->setText("5");
     QDoubleValidator *validatorDepth = new QDoubleValidator(this);  
     validatorDepth->setNotation(QDoubleValidator::StandardNotation);  
     validatorDepth->setDecimals(3); // Set the maximum number of decimals to 3  
@@ -262,15 +262,15 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ySlider, &QSlider::valueChanged, this, &MainWindow::updateYAxisRange);
     connect(startCollectionButton, &QPushButton::clicked, this, &MainWindow::startDataCollection);
     connect(stopCollectionButton, &QPushButton::clicked, this, &MainWindow::stopDataCollection);
-    int time_length = 10; //5ms
+    int time_length = 5; //5ms
     m_controller->vmDevice.channleID = 0;
-    m_controller->vmDevice.vmDds.count = 20;
+    m_controller->vmDevice.vmDds.count = 100;
     m_controller->vmDevice.vmDds.cycles = 3;
-    m_controller->vmDevice.vmDds.frequency = 10000;
+    m_controller->vmDevice.vmDds.frequency = 1000000;
     m_controller->vmDevice.vmDds.intervals = 200;
-    m_controller->vmDevice.vmDds.peak = 120;
+    m_controller->vmDevice.vmDds.peak = 2000;
     m_controller->vmDevice.vmDds.wave = Sine;
-    m_controller->vmDevice.vmDos.samplRate = 5000000;
+    m_controller->vmDevice.vmDos.samplRate = 50000000;
     m_controller->vmDevice.vmDos.depth = time_length * m_controller->vmDevice.vmDos.samplRate/1024000;
     m_controller->vmDevice.vmDos.preSamplDepth = 5;
     connect(m_controller, &WaveformController::deviceIDUpdated, this, &MainWindow::updateDeviceID);
@@ -385,7 +385,7 @@ void MainWindow::stopDataCollection() {
 
 void MainWindow::updateDeviceID(const QString& id) {
     deviceID->setText("设备ID: " + id);
-    qDebug() << "Device ID" <<deviceID ;
+    qDebug() << "Device ID: "<< id;
 }
 
  void MainWindow::monitorConnectionStatus(bool connected){

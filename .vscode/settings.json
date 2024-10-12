@@ -6,6 +6,7 @@
         "qthread": "cpp",
         "algorithm": "cpp",
         "random": "cpp",
-        "array": "cpp"
+        "array": "cpp",
+        "chrono": "cpp"
     }
 }

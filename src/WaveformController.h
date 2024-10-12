@@ -6,6 +6,9 @@
 #include "VmUsbWave.h"  // Include VmUsbWave class
 #include <QTimer>
 #include <QObject>
+#include <QTcpSocket>
+#include <QDebug>
+#include <QHostAddress>
 
 enum WaveForm {
     Arb,
@@ -84,6 +87,28 @@ public:
     void loadData(const QString& fileName);
     void updateDeviceID();
     void ddsDeviceInit();
+    // 保存数据
+    //void saveData();
+    void sendBufferOverTcp(QTcpSocket &socket, const double *buffer_ch1, int size) {
+    if (socket.state() == QAbstractSocket::ConnectedState) {
+        int totalBytesToSend = size * sizeof(double);
+        const char *bufferPointer = reinterpret_cast<const char *>(buffer_ch1);
+
+        int bytesSent = 0;
+        while (bytesSent < totalBytesToSend) {
+            qint64 sent = socket.write(bufferPointer + bytesSent, totalBytesToSend - bytesSent);
+            if (sent == -1) {
+                qWarning() << "Failed to send data!";
+                return;
+            }
+            bytesSent += sent;
+            socket.waitForBytesWritten();
+        }
+        qDebug() << "Data sent successfully (" << bytesSent << " bytes)";
+    } else {
+        qWarning() << "Socket is not connected!";
+    }
+}
     VMPARAINFO vmDevice;
 public slots:
     void startDataCollection();

@@ -12,8 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # 查找Qt库
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
-
+find_package(Qt5 COMPONENTS Core Widgets Network REQUIRED)
 # 设置共享库目录
 set(SHARED_LIB_SUBDIR "${CMAKE_SOURCE_DIR}/SharedLibrary/Windows/X64/Debug")
 
@@ -38,8 +37,7 @@ file(GLOB_RECURSE HEADERS "src/*.h")
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${RESOURCE_FILES})
 
 # 链接Qt库
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Widgets)
-
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Widgets Qt5::Network)
 # 链接共享库
 if(EXISTS "${SHARED_LIB_SUBDIR}/vmmso.lib")
     target_link_libraries(${PROJECT_NAME} PRIVATE ${SHARED_LIB_SUBDIR}/vmmso.lib)
