@@ -23,6 +23,7 @@ VmUsbWave::VmUsbWave(QObject *parent)
     , m_ch1_plot_range_max(0)
     , m_ch2_plot_range_min(0)
     , m_ch2_plot_range_max(0)
+    //, vmDevice(new VMPARAINFO())
 {
      InitDll(EN_LOG, EN_WATCH_DOG);
      SetDevNoticeCallBack(this, UsbDevAddCallBack, UsbDevRemoveCallBack);
@@ -352,7 +353,19 @@ static unsigned short WAVE[] = {/*BX_SINE*/ 0x0001,           //Sine
 {
 
 }*/
+void VmUsbWave::setDdsOutMode(int channel_index,int out_mode)
+{
+    SetDDSOutMode(channel_index, out_mode);
+}
 
+void VmUsbWave::setDdsBurstMode(unsigned char channel_index, int style,unsigned long long int num,unsigned long long int ns)
+{
+    SetDDSBurstStyle( channel_index, style);
+    SetDDSLoopsNum(channel_index,num);
+    SetDDSBurstPeriodNs(channel_index,ns);
+    SetDDSTriggerSource(channel_index, DDS_TRIGGER_SOURCE_INTERNAL);
+
+}
 void VmUsbWave::setDdsWaveIndex(int wave_index)
 {
     SetDDSBoxingStyle(0, WAVE[wave_index]);

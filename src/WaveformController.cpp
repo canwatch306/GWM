@@ -10,84 +10,139 @@
 #include <fstream>
 #include <cstdint>
 #include <QDebug>
-#include <QThread>
+#include <thread>
 #include <algorithm>
 
+bool flag = true;
+
+int count = 0;
+
+
+
 WaveformController::WaveformController(WaveformModel* model, WaveformView* view)
-    : m_model(model), m_view(view), m_vmusbwave(new VmUsbWave()) {
-    initDevice();
-    
-    
+    : m_model(model), m_view(view), m_vmusbwave(new VmUsbWave()){
+    connect(m_vmusbwave, &VmUsbWave::updateDatas, this, &WaveformController::processData);
+   
+    buffer_ch1 = new double[vmDevice.vmDos.depth*1024];
+    std::fill(buffer_ch1, buffer_ch1 + vmDevice.vmDos.depth*1024, 0);
 }
 
 WaveformController::~WaveformController() {
     cleanupDevice();
     delete m_vmusbwave;
     m_vmusbwave = nullptr; // Avoid dangling pointer
+        delete [] buffer_ch1;
+     buffer_ch1 = nullptr;
 }
 
 void WaveformController::initDevice() {
-    qDebug() << "Initializing device...";
-    m_vmusbwave->setsample(5000000); // Set sample rate (example)
-    m_vmusbwave->setTriggerMode(0);  // Set trigger mode (example)
-    m_vmusbwave->captureEnable(true);
-    m_vmusbwave->setCaptureLength(64); // Set to 2048K samples
-    m_vmusbwave->setTriggerStyle(0);
-    m_vmusbwave->setTriggerSource(0);
-    m_vmusbwave->setTriggerLevel(0);
+    count = vmDevice.vmDds.count;
+    qDebug() << "DDS output";
+    int chanelID = vmDevice.channleID;
+    unsigned long long loopsNums = (unsigned long long) vmDevice.vmDds.cycles;
+    unsigned long long periodNs = (unsigned long long) vmDevice.vmDds.intervals * 1e6;
+    unsigned int ddsFre = (unsigned int)vmDevice.vmDds.frequency;
+    unsigned long long burstDelay = ((double)loopsNums*0.02/ddsFre)* 1e9;
+    int amplitudeMv = vmDevice.vmDds.peak;
+    int preTrigger = vmDevice.vmDos.preSamplDepth;
+    WaveForm waveStyle = vmDevice.vmDds.wave;
+    SetAcDc(chanelID,0);
+    SetOscSample(vmDevice.vmDos.samplRate);
+    SetOscChannelRange(chanelID,-3000,3000);
+    int realSize = Capture(vmDevice.vmDos.depth,0x0001,0);
+    SetTriggerMode(TRIGGER_MODE_LIANXU);
+    SetTriggerStyle(TRIGGER_STYLE_RISE_EDGE);
+    SetTriggerSource(TRIGGER_SOURCE_LOGIC0);
+    SetPreTriggerPercent(preTrigger);
+    IOEnable(chanelID,1);
+    SetIOInOut(chanelID,0);
+    SetTriggerLevel(1500);
+    qDebug() << "realSize "<< realSize;
+    SetDDSOutMode(chanelID, DDS_OUT_MODE_BURST);
+    SetDDSBurstStyle( chanelID, 0);
+    SetDDSLoopsNum(chanelID,loopsNums);
+    SetDDSBurstDelayNs(chanelID,burstDelay);
+    SetDDSBurstPeriodNs(chanelID,periodNs);
+    SetDDSTriggerSource(chanelID, DDS_TRIGGER_SOURCE_INTERNAL);
+    SetDDSPinlv(chanelID, ddsFre);
+    SetDDSAmplitudeMv(chanelID, amplitudeMv);
+    SetDDSBoxingStyle(chanelID, waveStyle);
+    IOEnable(1,1);
+    SetIOInOut(1,1);
+    SetIOOutState(1,4);
+    SetDDSOutputGateEnge(chanelID,1);
+    DDSOutputEnable(chanelID, 1);
 }
+
+void WaveformController::ddsDeviceInit() {
+    initDevice(); 
+
+}
+
 
 void WaveformController::cleanupDevice() {
     qDebug() << "Cleaning up device...";
-    m_vmusbwave->captureEnable(false);
+    //m_vmusbwave->captureEnable(false);
 }
 
 void WaveformController::startDataCollection() {
     qDebug() << "Starting data collection...";
-        
+    flag = true;
+    ddsDeviceInit();   
+    
     //Call to update device ID after initialization
-    processData(); // Collect data once and stop
-    stopDataCollection(); // Stop the data collection after processing
+    // processData(); // Collect data once and stop
+    // stopDataCollection(); // Stop the data collection after processing
 }
 
 void WaveformController::stopDataCollection() {
     qDebug() << "Stopping data collection...";
-    m_vmusbwave->captureEnable(false);
+    DDSOutputEnable(0, 0);
+    SetTriggerMode(TRIGGER_MODE_AUTO);
+    flag = false;
+    //m_vmusbwave->captureEnable(false);
 }
 
 void WaveformController::processData() {
-    if (!m_vmusbwave) {
+   
+    if (!m_vmusbwave || !flag || !count) {
         qWarning() << "VmUsbWave instance is not initialized.";
+        std::fill(buffer_ch1, buffer_ch1 + vmDevice.vmDos.depth*1024, 0);
+        if (!count)
+        emit captureUpdated();
         return;
     }
+    const int bufferSize = vmDevice.vmDos.depth; // 2048K samples
+    QVector<double> xData(bufferSize*1024);
+    QVector<double> yData(bufferSize*1024);
 
-    const int bufferSize = 64; // 2048K samples
-    QVector<double> xData(bufferSize);
-    QVector<double> yData(bufferSize);
-
-    double *buffer_ch1 = new double[bufferSize];
-    Capture(bufferSize, 0x0001, 1);
-    int length_ch1 = ReadVoltageDatas(0, buffer_ch1, bufferSize);
+    double *buffer_ch1_temp = new double[bufferSize*1024];
+    int length_ch1 = ReadVoltageDatas(0, buffer_ch1_temp, bufferSize*1024);
    
-    double sampleFrequency = m_vmusbwave->getsample(); // Get sample frequency
-    double timeStep = 1.0 / sampleFrequency * 1e3; // Convert to milliseconds
-
-    for (int i = 0; i < length_ch1; ++i) {
+    double sampleFrequency = double(vmDevice.vmDos.samplRate); // Get sample frequency
+    //qDebug() <<sampleFrequency<<" ";
+    double timeStep = 1000.0 / sampleFrequency; // Convert to milliseconds
+    for (int i = 0; i < bufferSize*1024; ++i) {
         xData[i] = i * timeStep;
-        yData[i] = (buffer_ch1[i] - 32768.0) / 32768.0 * 8; // Convert to voltage
-         qDebug() <<yData[i]<<" ";
+        // if (count != vmDevice.vmDds.count)
+        // buffer_ch1[i] = (buffer_ch1[i] + buffer_ch1_temp[i])/2.0;
+        // else
+        buffer_ch1[i] = buffer_ch1_temp[i];
+        yData[i] = buffer_ch1[i];
     }
-
-    delete [] buffer_ch1;
-    buffer_ch1 = nullptr;
     m_model->setData(xData, yData);
 
     // Auto-adjust the axes based on the data
-    m_view->autoAdjustAxes();
+    //m_view->autoAdjustAxes();
+    m_view->update();
+    count--;
+    qDebug() <<"current count"<<count;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    Capture(vmDevice.vmDos.depth,0x0001,0);
 }
 
 void WaveformController::loadData(const QString& fileName) {
-    if (fileName.isEmpty()) {
+    if (fileName.isEmpty() ) {
         qWarning() << "File name is empty.";
         return;
     }

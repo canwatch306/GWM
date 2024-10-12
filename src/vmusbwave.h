@@ -37,6 +37,7 @@ public:
     Q_INVOKABLE void setPlotRangeCh1(QVariantList list);
     Q_INVOKABLE void setPlotRangeCh2(QVariantList list);
     Q_INVOKABLE void nextCapture();
+   
 public Q_SLOTS:
     void qmlcallcpp_style2(const int8_t chn);
 
@@ -51,7 +52,7 @@ public Q_SLOTS:
     void setCaptureLength(int kb);
     int getCaptureLength();
     void captureEnable(bool en);
-
+    void setDdsOutMode(int channel_index,int out_mode);
     bool getAcDcCh1();
     void setAcDcCh1(bool ac);
     bool getAcDcCh2();
@@ -70,7 +71,7 @@ public Q_SLOTS:
     bool isSupportDds();
     //int getDdsWaveIndex();
     void setDdsWaveIndex(int wave_index);
-
+    void setDdsBurstMode(unsigned char channel_index, int style,unsigned long long int num,unsigned long long int ns);
     void setDdsDuty(int duty);
 
     void setDdsFreq(int freq);
@@ -121,6 +122,8 @@ private:
     double m_ch2_range_min, m_ch2_range_max;
     double m_ch1_plot_range_min, m_ch1_plot_range_max;
     double m_ch2_plot_range_min, m_ch2_plot_range_max;
+
+   
 };
 
 #endif // VMUSBWAVE_H

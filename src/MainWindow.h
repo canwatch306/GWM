@@ -26,6 +26,7 @@ public:
     ~MainWindow();
 
 
+
 private slots:
     void on_loadDataButton_clicked();
     void chooseLineColor();
@@ -36,6 +37,14 @@ private slots:
     void stopDataCollection();  // New slot for stopping data collection
     void toggleButton();
     void setConnectionStatus(bool connected);
+    void onInputPeakValue();
+    void onInputFreValue();
+    void onInputLoopNumValue();
+    void onInputCyclesValue();
+    void onInputWavestyleValue();
+    void onInputPearidValue();
+    void onInputSampleValue();
+    void onInputDepthValue();
 
 public slots:
     void updateDeviceID(const QString& id);
@@ -45,6 +54,9 @@ public slots:
 
 
 private:
+
+
+void infoMonitorInital();
 /***********设备初始化************/
     QLabel *deviceID;
     QWidget* centralWidget;

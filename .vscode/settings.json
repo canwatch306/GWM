@@ -2,6 +2,10 @@
     "files.associations": {
         "new": "cpp",
         "qobject": "cpp",
-        "qfuture": "cpp"
+        "qfuture": "cpp",
+        "qthread": "cpp",
+        "algorithm": "cpp",
+        "random": "cpp",
+        "array": "cpp"
     }
 }
